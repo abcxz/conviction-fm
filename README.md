@@ -53,7 +53,7 @@ Ready-to-use strategy templates ([full details](./STRATEGY_GUIDE.md#strategy-rec
 
 | Recipe | Style | Rules |
 |--------|-------|-------|
-| Probability Sniper | Conservative | High prob (>65%), $5, max 2/pool |
+| Probability Sniper | Conservative | High prob (>65%), $5 |
 | Contrarian Alpha | High risk | Underdog when pool >60% imbalanced, $8 |
 | BTC Maximalist | Focused | Only BTC pools, always BTC, $10 |
 | Equal Spreader | Steady | Every pool $3, pick high prob |

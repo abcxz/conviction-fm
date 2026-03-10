@@ -390,7 +390,7 @@ Six tested templates. Copy the rules text into `create_agent` or the strategy bu
 
 **Tag:** POPULAR | **Style:** Conservative, high win rate
 
-**Rules:** `Pick the token with the highest win probability, but ONLY when it exceeds 65%. Enter with $5 per pool. Maximum 2 entries per pool per day. Max daily spend $60. 30 minute cooldown between entries.`
+**Rules:** `Pick the token with the highest win probability, but ONLY when it exceeds 65%. Enter with $5 per pool.`
 
 Compiled:
 ```json
@@ -398,9 +398,9 @@ Compiled:
   "version": 1,
   "rules": [{
     "condition": { "type": "win_probability", "probability_threshold_pct": 65, "probability_side": "high" },
-    "action": { "amount_usdc": 5, "side_selection": "high_prob", "max_bets_per_pool": 2 }
+    "action": { "amount_usdc": 5, "side_selection": "high_prob" }
   }],
-  "global_constraints": { "max_daily_spend_usdc": 60, "cooldown_minutes": 30 }
+  "global_constraints": {}
 }
 ```
 
@@ -408,7 +408,7 @@ Compiled:
 
 **Tag:** HIGH RISK | **Style:** Higher returns when right
 
-**Rules:** `Go contrarian: when the pool is imbalanced (one side has >60% of the pool), pick the underdog. Enter with $8 per pool. Max 1 entry per pool. Max daily spend $80. Only enter when there are more than 6 hours remaining.`
+**Rules:** `Go contrarian: when the pool is imbalanced (one side has >60% of the pool), pick the underdog. Enter with $8 per pool. Only enter when there are more than 6 hours remaining.`
 
 Compiled:
 ```json
@@ -416,9 +416,9 @@ Compiled:
   "version": 1,
   "rules": [{
     "condition": { "type": "pool_imbalance", "imbalance_threshold_pct": 60, "min_hours_remaining": 6 },
-    "action": { "amount_usdc": 8, "side_selection": "underdog", "max_bets_per_pool": 1 }
+    "action": { "amount_usdc": 8, "side_selection": "underdog" }
   }],
-  "global_constraints": { "max_daily_spend_usdc": 80 }
+  "global_constraints": {}
 }
 ```
 
@@ -426,7 +426,7 @@ Compiled:
 
 **Tag:** FOCUSED | **Style:** Single-token conviction
 
-**Rules:** `Only enter pools that include BTC. Always pick BTC as the winning side. Enter with $10 per pool. Max 1 entry per pool. Max daily spend $50.`
+**Rules:** `Only enter pools that include BTC. Always pick BTC as the winning side. Enter with $10 per pool.`
 
 Compiled:
 ```json
@@ -434,9 +434,9 @@ Compiled:
   "version": 1,
   "rules": [{
     "condition": { "type": "token_preference", "include_tokens": ["BTC"] },
-    "action": { "amount_usdc": 10, "side_selection": "specific_token", "specific_token": "BTC", "max_bets_per_pool": 1 }
+    "action": { "amount_usdc": 10, "side_selection": "specific_token", "specific_token": "BTC" }
   }],
-  "global_constraints": { "max_daily_spend_usdc": 50 }
+  "global_constraints": {}
 }
 ```
 
@@ -444,7 +444,7 @@ Compiled:
 
 **Tag:** STEADY | **Style:** Diversified, consistent activity
 
-**Rules:** `Enter every open pool with $3. Pick the token with higher win probability. Max 1 entry per pool. 15 minute cooldown. Max daily spend $40.`
+**Rules:** `Enter every open pool with $3. Pick the token with higher win probability.`
 
 Compiled:
 ```json
@@ -452,9 +452,9 @@ Compiled:
   "version": 1,
   "rules": [{
     "condition": { "type": "always" },
-    "action": { "amount_usdc": 3, "side_selection": "high_prob", "max_bets_per_pool": 1 }
+    "action": { "amount_usdc": 3, "side_selection": "high_prob" }
   }],
-  "global_constraints": { "max_daily_spend_usdc": 40, "cooldown_minutes": 15 }
+  "global_constraints": {}
 }
 ```
 
@@ -462,7 +462,7 @@ Compiled:
 
 **Tag:** TIMING | **Style:** Precision, wait for clarity
 
-**Rules:** `Only enter when there are less than 4 hours remaining in the pool. Pick the token with highest win probability. Enter with $15 when probability > 70%, $8 when probability > 60%. Skip if neither token exceeds 60%. Max 1 entry per pool.`
+**Rules:** `Only enter when there are less than 4 hours remaining in the pool. Pick the token with highest win probability. Enter with $15 when probability > 70%, $8 when probability > 60%. Skip if neither token exceeds 60%.`
 
 Compiled:
 ```json
@@ -471,11 +471,11 @@ Compiled:
   "rules": [
     {
       "condition": { "type": "win_probability", "probability_threshold_pct": 70, "probability_side": "high", "max_hours_remaining": 4 },
-      "action": { "amount_usdc": 15, "side_selection": "high_prob", "max_bets_per_pool": 1 }
+      "action": { "amount_usdc": 15, "side_selection": "high_prob" }
     },
     {
       "condition": { "type": "win_probability", "probability_threshold_pct": 60, "probability_side": "high", "max_hours_remaining": 4 },
-      "action": { "amount_usdc": 8, "side_selection": "high_prob", "max_bets_per_pool": 1 }
+      "action": { "amount_usdc": 8, "side_selection": "high_prob" }
     }
   ],
   "global_constraints": {}
@@ -486,7 +486,7 @@ Compiled:
 
 **Tag:** DYNAMIC | **Style:** Scale size by confidence
 
-**Rules:** `Pick the token with higher win probability. Scale the entry: $3 when probability is 55-65%, $10 when 65-75%, $25 when above 75%. Max 2 entries per pool. 20 minute cooldown. Max daily spend $100.`
+**Rules:** `Pick the token with higher win probability. Scale the entry: $3 when probability is 55-65%, $10 when 65-75%, $25 when above 75%.`
 
 Compiled:
 ```json
@@ -495,18 +495,18 @@ Compiled:
   "rules": [
     {
       "condition": { "type": "win_probability", "probability_threshold_pct": 75, "probability_side": "high" },
-      "action": { "amount_usdc": 25, "side_selection": "high_prob", "max_bets_per_pool": 2 }
+      "action": { "amount_usdc": 25, "side_selection": "high_prob" }
     },
     {
       "condition": { "type": "win_probability", "probability_threshold_pct": 65, "probability_side": "high" },
-      "action": { "amount_usdc": 10, "side_selection": "high_prob", "max_bets_per_pool": 2 }
+      "action": { "amount_usdc": 10, "side_selection": "high_prob" }
     },
     {
       "condition": { "type": "win_probability", "probability_threshold_pct": 55, "probability_side": "high" },
-      "action": { "amount_usdc": 3, "side_selection": "high_prob", "max_bets_per_pool": 2 }
+      "action": { "amount_usdc": 3, "side_selection": "high_prob" }
     }
   ],
-  "global_constraints": { "max_daily_spend_usdc": 100, "cooldown_minutes": 20 }
+  "global_constraints": {}
 }
 ```
 
