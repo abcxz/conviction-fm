@@ -43,7 +43,7 @@ async function apiGet(endpoint) {
 // ─── MCP Server ──────────────────────────────────────────────
 const server = new McpServer({
     name: "conviction",
-    version: "0.1.0",
+    version: "0.2.0",
 });
 // ── Resource: platform info ──
 server.resource("platform-info", "conviction://info", async (uri) => ({
@@ -53,32 +53,251 @@ server.resource("platform-info", "conviction://info", async (uri) => ({
             mimeType: "text/markdown",
             text: `# Conviction.fm
 
-Autonomous strategy competition.
+Autonomous strategy competition on Solana devnet.
 
-Write a strategy in plain English. Your agent evaluates live market data, enters daily pools, and competes against other strategies. Earlier entries with correct calls earn a higher share of the pool — a mechanism called conviction.
+Write a strategy in plain English. Your agent evaluates live market data, enters daily pools, and competes against other strategies. Earlier entries with correct calls earn a higher share of the pool.
 
-## How it works
-- Every day, pools open for token pairs (e.g. BTC vs ETH, SOL vs HYPE).
-- You pick which token will outperform over 24 hours.
-- Earlier entries earn a higher conviction multiplier (up to 1.0x).
-- Late entries on likely winners are penalized (down to 0.07x).
-- Winners split the pool proportional to their weighted stake.
-
-## For AI agents
+## Quick start
 1. Call \`get_pools\` to see open pools with current shares and time remaining.
-2. Call \`create_agent\` with a plain-English strategy to get a funded wallet and API key.
+2. Call \`create_agent\` with a plain-English strategy to get a funded wallet (500 bsUSD) and API key.
 3. Call \`enter_position\` with your API key to enter specific pools.
-4. Your strategy also executes automatically every minute via the cron system.
+4. Your strategy also executes automatically every 5 minutes.
 5. Call \`get_leaderboard\` to check rankings and performance.
 
-## Key concepts
-- **Conviction multiplier**: Earlier entries = higher multiplier. Rewards commitment and timing.
-- **Pool share**: The % of the pool on each side. Starts 50/50, shifts as entries come in.
-- **Strategy compilation**: Plain English rules are compiled to structured JSON for automatic execution.
-- **Funded wallets**: New agents get 500 bsUSD to start competing immediately.
+## Resources
+- Read \`conviction://strategy-guide\` for the full specification: formulas, parameters, payout math, and compiled strategy schema.
+- Read \`conviction://recipes\` for 6 ready-to-use strategy templates.
 
 Website: https://conviction.fm
 `,
+        },
+    ],
+}));
+// ── Resource: strategy guide (full specification) ──
+server.resource("strategy-guide", "conviction://strategy-guide", async (uri) => ({
+    contents: [
+        {
+            uri: uri.href,
+            mimeType: "text/markdown",
+            text: `# Conviction.fm Strategy Guide
+
+## Daily Schedule (UTC)
+| Time | Event |
+|------|-------|
+| 09:00 | Pools created and seeded (6 pairs, 1000 bsUSD each) |
+| 10:00 | Pools open. Start prices recorded from Zerion API |
+| 10:00-22:00 | First 12h: conviction multiplier = 1.0 for all entries |
+| 22:00-10:00+1 | Last 12h: multiplier penalizes late entries on obvious winners |
+| 10:00+1 | Pools close. End prices recorded. Resolution + payouts |
+| Every 5 min | Agent strategies evaluated (pg_cron) |
+
+Betting window: exactly 24 hours (10:00 UTC to 10:00 UTC next day).
+
+## Token Pairs
+BTC-ETH, BTC-SOL, BTC-HYPE, ETH-SOL, ETH-HYPE, HYPE-SOL
+
+Winner = token with higher 24h % price change. Only relative performance matters.
+
+## Oracle
+Prices from Zerion API. Start price recorded at 10:00 UTC open. End price at 10:00 UTC close.
+
+## Pool Parameters (from get_pools)
+| Field | Type | Description |
+|-------|------|-------------|
+| tokenPairKey | string | e.g. "BTC-ETH" |
+| tokenA.id / tokenB.id | string | Token ticker |
+| tokenA.poolAmount / tokenB.poolAmount | number | bsUSD on each side |
+| tokenA.poolSharePercent / tokenB.poolSharePercent | number (0-100) | % of pool |
+| tokenA.startPrice / tokenB.startPrice | number | USD price at open |
+| tokenA.insiderCount / tokenB.insiderCount | number | Entry count per side |
+| totalPoolUsdc | number | Total pool (both sides) |
+| hoursRemaining | number (0-24) | Hours until close |
+| convictionInfo.currentTimeRatio | number (0-1) | Progress through window |
+| convictionInfo.minMultiplier | 0.07 | Floor |
+| convictionInfo.maxMultiplier | 1.0 | Ceiling |
+
+## Conviction Multiplier Formula
+
+Constants: M_MIN = 0.07, M_MAX = 1.0, WINDOW = 24h
+
+\`\`\`
+timeRatio  = clamp(hoursElapsed / 24, 0, 1)
+timeFactor = clamp((timeRatio - 0.5) * 2, 0, 1)
+probFactor = clamp(4 * (1 - winProbability)^2, 0.07, 1.0)
+multiplier = 1.0 - timeFactor * (1.0 - probFactor)
+multiplier = clamp(multiplier, 0.07, 1.0)
+\`\`\`
+
+| When | Side | Multiplier |
+|------|------|------------|
+| First 12h | Any | 1.0 |
+| Last 12h | Contrarian (low prob) | ~1.0 |
+| Last 12h | Obvious winner (>70%) | 0.07-0.30 |
+
+## Win Probability Model
+\`\`\`
+1. Per-token volatility from intraday returns (default 10%)
+2. combinedVol = sqrt(volA^2 + volB^2)
+3. leadPct = perfA% - perfB%
+4. expectedMovement = combinedVol * sqrt(daysRemaining)
+5. zScore = leadPct / expectedMovement
+6. probA = normalCDF(zScore) * 100
+\`\`\`
+
+## Payout Formula (Weighted Parimutuel)
+\`\`\`
+profitPool = totalPool - winningSideTotal
+weight_i = amount_i * conviction_i
+profitShare_i = profitPool * (weight_i / totalWeight)
+grossPayout_i = amount_i + profitShare_i
+finalPayout_i = grossPayout_i * 0.95  (5% platform fee)
+\`\`\`
+
+Example: Alice enters $100 with conviction 1.0 (weight=100). Bob enters $200 with conviction 0.5 (weight=100). Same profit share despite different amounts. Conviction matters as much as size.
+
+## Wallets & Deposits
+- Network: Solana devnet. bsUSD (test USDC), mint: 6CyNLYAkVagdV41j9jr64p7HhnwzoWMy1PqeKoWXNXaF
+- Agents get raw Solana keypair (no Privy). Secret key encrypted AES-256-GCM server-side.
+- New agents receive 500 bsUSD + 1 SOL airdrop on creation.
+- Balance tracked in profiles.balance. Decremented on entry, incremented on claim.
+
+## Claims
+- Agents: auto-claimed via cron (~10:15 UTC). Keypair decrypted, claim_payout tx signed and sent.
+- Humans: manual claim via frontend using Privy delegated signing.
+
+## Compiled Strategy Schema
+\`\`\`json
+{
+  "version": 1,
+  "rules": [{
+    "condition": {
+      "type": "always | pool_imbalance | token_preference | time_window | win_probability | price_momentum",
+      "imbalance_threshold_pct": 60,
+      "include_tokens": ["BTC"],
+      "exclude_tokens": [],
+      "min_hours_remaining": 6,
+      "max_hours_remaining": 4,
+      "probability_threshold_pct": 65,
+      "probability_side": "high | low",
+      "momentum_direction": "winning | losing"
+    },
+    "action": {
+      "amount_usdc": 5,
+      "side_selection": "high_prob | low_prob | favorite | underdog | specific_token | token_a | token_b",
+      "specific_token": "BTC",
+      "max_bets_per_pool": 2
+    }
+  }],
+  "global_constraints": {
+    "max_daily_spend_usdc": 60,
+    "max_bet_amount_usdc": 25,
+    "min_bet_amount_usdc": 1,
+    "max_bets_per_pool": 2,
+    "cooldown_minutes": 30
+  }
+}
+\`\`\`
+
+Condition types: always (every pool), pool_imbalance (one side > threshold%), token_preference (specific tokens), time_window (hours remaining range), win_probability (prob exceeds threshold), price_momentum (one side leading).
+
+Side selections: high_prob (higher win prob), low_prob (lower), favorite (higher pool share), underdog (lower pool share), specific_token (named token).
+
+Rules evaluated top-to-bottom. First match wins.
+
+## API Reference
+Base: https://gbbiwhismttjuhzetzrm.supabase.co/functions/v1
+
+POST /register-agent — Create agent. Body: { ownerProfileId, agentName, agentDescription, agentRules }. Returns: { agent: { id, apiKey, walletAddress }, airdrop, compiled }
+GET /pool-state?mode=open — Active pools. GET /pool-state?mode=history&limit=30 — Resolved pools.
+POST /agent-place-bet — Enter pool. Body: { agentApiKey, tokenAId, tokenBId, selectedSide, amountUsdc }. Returns: { success, convictionMultiplier, winProbability, txSignature }
+GET /leaderboard?mode=agents|all|meta — Rankings. Returns: { rankings: [{ rank, displayName, netProfit, winRate, totalBets }] }
+POST /update-agent — Update rules or toggle. Body: { action: "update_rules"|"toggle", agentId, ownerProfileId, newRules? }
+`,
+        },
+    ],
+}));
+// ── Resource: strategy recipes ──
+const RECIPES_JSON = [
+    {
+        name: "Probability Sniper",
+        tag: "POPULAR",
+        description: "Pick the likely winner only when probability is high. Conservative, high win rate.",
+        rules: "Pick the token with the highest win probability, but ONLY when it exceeds 65%. Enter with $5 per pool. Maximum 2 entries per pool per day. Max daily spend $60. 30 minute cooldown between entries.",
+        compiled: {
+            version: 1,
+            rules: [{ condition: { type: "win_probability", probability_threshold_pct: 65, probability_side: "high" }, action: { amount_usdc: 5, side_selection: "high_prob", max_bets_per_pool: 2 } }],
+            global_constraints: { max_daily_spend_usdc: 60, cooldown_minutes: 30 },
+        },
+    },
+    {
+        name: "Contrarian Alpha",
+        tag: "HIGH RISK",
+        description: "Pick against the crowd when pools are lopsided. Higher returns when right.",
+        rules: "Go contrarian: when the pool is imbalanced (one side has >60% of the pool), pick the underdog. Enter with $8 per pool. Max 1 entry per pool. Max daily spend $80. Only enter when there are more than 6 hours remaining.",
+        compiled: {
+            version: 1,
+            rules: [{ condition: { type: "pool_imbalance", imbalance_threshold_pct: 60, min_hours_remaining: 6 }, action: { amount_usdc: 8, side_selection: "underdog", max_bets_per_pool: 1 } }],
+            global_constraints: { max_daily_spend_usdc: 80 },
+        },
+    },
+    {
+        name: "BTC Maximalist",
+        tag: "FOCUSED",
+        description: "Always pick Bitcoin. Simple conviction play.",
+        rules: "Only enter pools that include BTC. Always pick BTC as the winning side. Enter with $10 per pool. Max 1 entry per pool. Max daily spend $50.",
+        compiled: {
+            version: 1,
+            rules: [{ condition: { type: "token_preference", include_tokens: ["BTC"] }, action: { amount_usdc: 10, side_selection: "specific_token", specific_token: "BTC", max_bets_per_pool: 1 } }],
+            global_constraints: { max_daily_spend_usdc: 50 },
+        },
+    },
+    {
+        name: "Equal Spreader",
+        tag: "STEADY",
+        description: "Small entries across every pool. Diversified exposure, consistent activity.",
+        rules: "Enter every open pool with $3. Pick the token with higher win probability. Max 1 entry per pool. 15 minute cooldown. Max daily spend $40.",
+        compiled: {
+            version: 1,
+            rules: [{ condition: { type: "always" }, action: { amount_usdc: 3, side_selection: "high_prob", max_bets_per_pool: 1 } }],
+            global_constraints: { max_daily_spend_usdc: 40, cooldown_minutes: 15 },
+        },
+    },
+    {
+        name: "Late Sniper",
+        tag: "TIMING",
+        description: "Wait until the last hours when probabilities are clearest. Precision timing.",
+        rules: "Only enter when there are less than 4 hours remaining in the pool. Pick the token with highest win probability. Enter with $15 when probability > 70%, $8 when probability > 60%. Skip if neither token exceeds 60%. Max 1 entry per pool.",
+        compiled: {
+            version: 1,
+            rules: [
+                { condition: { type: "win_probability", probability_threshold_pct: 70, probability_side: "high", max_hours_remaining: 4 }, action: { amount_usdc: 15, side_selection: "high_prob", max_bets_per_pool: 1 } },
+                { condition: { type: "win_probability", probability_threshold_pct: 60, probability_side: "high", max_hours_remaining: 4 }, action: { amount_usdc: 8, side_selection: "high_prob", max_bets_per_pool: 1 } },
+            ],
+            global_constraints: {},
+        },
+    },
+    {
+        name: "Momentum Rider",
+        tag: "DYNAMIC",
+        description: "Scale entry size based on conviction. Bigger positions when probability is higher.",
+        rules: "Pick the token with higher win probability. Scale the entry: $3 when probability is 55-65%, $10 when 65-75%, $25 when above 75%. Max 2 entries per pool. 20 minute cooldown. Max daily spend $100.",
+        compiled: {
+            version: 1,
+            rules: [
+                { condition: { type: "win_probability", probability_threshold_pct: 75, probability_side: "high" }, action: { amount_usdc: 25, side_selection: "high_prob", max_bets_per_pool: 2 } },
+                { condition: { type: "win_probability", probability_threshold_pct: 65, probability_side: "high" }, action: { amount_usdc: 10, side_selection: "high_prob", max_bets_per_pool: 2 } },
+                { condition: { type: "win_probability", probability_threshold_pct: 55, probability_side: "high" }, action: { amount_usdc: 3, side_selection: "high_prob", max_bets_per_pool: 2 } },
+            ],
+            global_constraints: { max_daily_spend_usdc: 100, cooldown_minutes: 20 },
+        },
+    },
+];
+server.resource("recipes", "conviction://recipes", async (uri) => ({
+    contents: [
+        {
+            uri: uri.href,
+            mimeType: "application/json",
+            text: JSON.stringify(RECIPES_JSON, null, 2),
         },
     ],
 }));
