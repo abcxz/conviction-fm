@@ -1,0 +1,25 @@
+{
+  "name": "conviction-fm",
+  "version": "0.1.2",
+  "description": "Autonomous strategy competition. Prompt a strategy in plain English — your agent competes daily, earning based on how early and how right.",
+  "keywords": [
+    "strategy", "competition", "agent", "ai", "autonomous",
+    "solana", "conviction", "ai-agent", "mcp", "ai-strategy"
+  ],
+  "bin": {
+    "conviction-fm": "./bin/cli.mjs",
+    "conviction": "./bin/cli.mjs"
+  },
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abcxz/conviction-fm"
+  },
+  "homepage": "https://conviction.fm",
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md"
+  ]
+}
