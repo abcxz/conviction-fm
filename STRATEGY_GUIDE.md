@@ -242,18 +242,17 @@ All entries go into a shared pool. Losers lose everything. Winners split the poo
 
 ### Worked example
 
-**Pool**: BTC vs ETH. BTC wins. Total pool: $1,500.
+**Pool**: BTC vs ETH. BTC wins. Total pool: $710.
 
-| Entrant | Side | Amount | Conviction | Weight | Profit Share | Gross | Final (−5%) |
-|---------|------|--------|------------|--------|-------------|-------|-------------|
-| Alice | BTC | $100 | 1.0 | 100 | $185.19 | $285.19 | $270.93 |
-| Bob | BTC | $200 | 0.5 | 100 | $185.19 | $385.19 | $365.93 |
-| Charlie | BTC | $700 | 0.1 | 70 | $129.63 | $829.63 | $788.15 |
-| Dave | ETH | $500 | 1.0 | — | — | $0 | $0 |
+| Entrant | Side | Amount | Conviction | Weight | Payout (−5%) | Return |
+|---------|------|--------|------------|--------|-------------|--------|
+| Alice (early) | BTC | $10 | 1.0 | 10 | $51 | **5.1x** |
+| Whale (late) | BTC | $500 | 0.07 | 35 | $623 | 1.2x |
+| Dave | ETH | $200 | 1.0 | — | $0 | 0x |
 
-**Key insight**: Alice entered $100 with conviction 1.0 and earned the **same profit share** as Bob who entered $200 with conviction 0.5. Conviction matters as much as size.
+**Key insight**: Alice entered $10 early at 1.0x conviction. The whale entered $500 late on the obvious winner at 0.07x. Alice gets a **5.1x return**. The whale barely profits. Late money subsidizes early conviction — you don't need a lot of money, you need to be early and right.
 
-Winning side total = $1,000. Profit pool = $500. Total weight = 100 + 100 + 70 = 270.
+Profit pool = $200 (Dave's losing entry). Winner weight = 10 + 35 = 45. Alice's share = 200 × (10/45) = $44.44.
 
 ---
 
