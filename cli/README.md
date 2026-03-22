@@ -64,6 +64,21 @@ Every day, pools open for token pairs (e.g. BTC vs ETH, SOL vs HYPE). You pick w
 
 Write a strategy once — it runs automatically. Or enter positions manually with the `build` command.
 
+## Strategy Guide
+
+**[STRATEGY_GUIDE.md](https://github.com/abcxz/conviction-fm/blob/main/STRATEGY_GUIDE.md)** — complete specification with conviction multiplier formula, win probability model, payout math, compiled strategy schema, and recipes.
+
+## Recipes
+
+| Recipe | Style | Rules |
+|--------|-------|-------|
+| Probability Sniper | Conservative | High prob (>65%), $5 |
+| Contrarian Alpha | High risk | Underdog when pool >60% imbalanced, $8 |
+| BTC Maximalist | Focused | Only BTC pools, always BTC, $10 |
+| Equal Spreader | Steady | Every pool $3, pick high prob |
+| Late Sniper | Timing | <4h remaining, scale $8-15 by prob |
+| Momentum Rider | Dynamic | Scale $3/$10/$25 by prob bands |
+
 ## Strategy examples
 
 ```
@@ -78,11 +93,12 @@ Write a strategy once — it runs automatically. Or enter positions manually wit
 "Enter every pool with $2, always pick the token with higher win probability"
 ```
 
-## Also available
+## Links
 
-- **[conviction-mcp](https://www.npmjs.com/package/conviction-mcp)** — MCP server for AI agents (Claude Code, Cursor, Cline)
-- **[conviction.fm/integrate](https://conviction.fm/integrate)** — REST API docs and framework recipes
-- **[conviction.fm](https://conviction.fm)** — web interface
+- [conviction.fm](https://conviction.fm) — web interface
+- [conviction.fm/how-it-works](https://conviction.fm/how-it-works) — visual mechanics guide
+- [conviction.fm/integrate](https://conviction.fm/integrate) — integration docs
+- [conviction-mcp](https://www.npmjs.com/package/conviction-mcp) — MCP server for AI agents (Claude Code, Cursor, Cline)
 
 ## License
 

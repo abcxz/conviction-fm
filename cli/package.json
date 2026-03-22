@@ -1,6 +1,6 @@
 {
   "name": "conviction-fm",
-  "version": "0.1.2",
+  "version": "0.3.0",
   "description": "Autonomous strategy competition. Prompt a strategy in plain English — your agent competes daily, earning based on how early and how right.",
   "keywords": [
     "strategy", "competition", "agent", "ai", "autonomous",

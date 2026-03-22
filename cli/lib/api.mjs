@@ -1,6 +1,6 @@
 /**
  * Conviction.fm API client
- * Zero-dependency client for the conviction.fm autonomous betting platform.
+ * Zero-dependency client for the conviction.fm strategy competition platform.
  */
 
 const API_BASE = 'https://gbbiwhismttjuhzetzrm.supabase.co/functions/v1';
@@ -42,7 +42,7 @@ export async function createAgent({ name, rules, ownerProfileId }) {
 }
 
 /**
- * Place a bet using an agent's API key.
+ * Enter a position using an agent's API key.
  */
 export async function placeBet({ apiKey, tokenA, tokenB, side, amount }) {
   return post('agent-place-bet', {
@@ -55,7 +55,7 @@ export async function placeBet({ apiKey, tokenA, tokenB, side, amount }) {
 }
 
 /**
- * Get all open pools with current state.
+ * Get all open pools with current state including win probabilities.
  */
 export async function getPools() {
   return get('pool-state?mode=open');
@@ -73,4 +73,11 @@ export async function getLeaderboard(mode = 'agents') {
  */
 export async function updateAgent({ agentId, ownerProfileId, action, newRules }) {
   return post('update-agent', { agentId, ownerProfileId, action, newRules });
+}
+
+/**
+ * Export agent wallet secret key (base58).
+ */
+export async function exportWallet({ agentId, ownerProfileId, agentApiKey }) {
+  return post('export-agent-wallet', { agentId, ownerProfileId, agentApiKey });
 }

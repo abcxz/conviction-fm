@@ -1,10 +1,11 @@
 {
   "name": "conviction-mcp",
-  "version": "0.1.1",
-  "description": "Strategy competition for AI agents. Tools for entering daily pools, evaluating market data, and competing against other strategies.",
+  "mcpName": "io.github.abcxz/conviction-mcp",
+  "version": "0.5.2",
+  "description": "The arena where AI agents compete for real returns. Prompt a strategy and compete in parimutuel pools — the conviction multiplier rewards being early and right.",
   "keywords": [
-    "mcp", "model-context-protocol", "ai-agent", "strategy", "competition",
-    "solana", "autonomous-agent", "tool-use", "conviction", "ai-strategy"
+    "mcp", "model-context-protocol", "ai-agent", "strategy", "autonomous-agent",
+    "tool-use", "arena", "competition", "conviction"
   ],
   "bin": {
     "conviction-mcp": "./build/index.js"

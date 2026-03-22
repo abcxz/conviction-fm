@@ -11,7 +11,7 @@
  *   npx conviction leaderboard        Show strategy rankings
  */
 
-import { createAgent, placeBet, getPools, getLeaderboard } from '../lib/api.mjs';
+import { createAgent, placeBet, getPools, getLeaderboard, exportWallet } from '../lib/api.mjs';
 import { createInterface } from 'readline';
 
 const BOLD = '\x1b[1m';
@@ -78,7 +78,7 @@ async function cmdCreate(rulesArg) {
   print(`  ${BOLD}Funded:${RESET}  ${result.airdrop?.funded ? `${GREEN}500 bsUSD${RESET}` : `${RED}Not funded${RESET}`}`);
   print(`  ${BOLD}Rules:${RESET}   ${result.compiled?.success ? `${GREEN}Compiled (${result.compiled.rulesCount} rules)${RESET}` : `${YELLOW}Pending${RESET}`}`);
   print();
-  print(`${DIM}  Your agent will start competing automatically every minute.${RESET}`);
+  print(`${DIM}  Your agent will start competing automatically every 5 minutes.${RESET}`);
   print(`${DIM}  Track it at: ${RESET}${CYAN}https://conviction.fm/strategy${RESET}`);
   print();
   print(`${YELLOW}${BOLD}  Save your API key — it won't be shown again.${RESET}`);
@@ -159,10 +159,12 @@ async function cmdPools() {
     const total = p.totalPoolUsdc?.toFixed(0) || '?';
     const aName = p.tokenA?.id || p.tokenPairKey.split('-')[0];
     const bName = p.tokenB?.id || p.tokenPairKey.split('-')[1];
+    const aProb = p.tokenA?.winProbability?.toFixed(1);
+    const bProb = p.tokenB?.winProbability?.toFixed(1);
 
     print(`  ${BOLD}${p.tokenPairKey}${RESET}  ${DIM}(${hrs}h left, $${total} pool)${RESET}`);
-    print(`    ${aName}: ${CYAN}${aShare}%${RESET} pool ${DIM}($${aAmt})${RESET}`);
-    print(`    ${bName}: ${CYAN}${bShare}%${RESET} pool ${DIM}($${bAmt})${RESET}`);
+    print(`    ${aName}: ${aProb ? `${GREEN}${aProb}%${RESET} prob` : ''}  ${CYAN}${aShare}%${RESET} pool ${DIM}($${aAmt})${RESET}`);
+    print(`    ${bName}: ${bProb ? `${GREEN}${bProb}%${RESET} prob` : ''}  ${CYAN}${bShare}%${RESET} pool ${DIM}($${bAmt})${RESET}`);
     print();
   }
 }
@@ -177,8 +179,39 @@ async function cmdLeaderboard() {
 
   for (const r of rankings.slice(0, 15)) {
     const profit = r.netProfit >= 0 ? `${GREEN}+$${r.netProfit.toFixed(2)}${RESET}` : `${RED}-$${Math.abs(r.netProfit).toFixed(2)}${RESET}`;
-    print(`  ${DIM}#${r.rank}${RESET}  ${BOLD}${r.displayName}${RESET}  ${profit}  ${DIM}${r.totalBets} bets, ${r.winRate}% win${RESET}`);
+    print(`  ${DIM}#${r.rank}${RESET}  ${BOLD}${r.displayName}${RESET}  ${profit}  ${DIM}${r.totalBets} entries, ${r.winRate}% win${RESET}`);
   }
+  print();
+}
+
+async function cmdExportWallet(apiKey) {
+  if (!apiKey) {
+    print(`${RED}  Usage: conviction export-wallet <apiKey>${RESET}`);
+    print(`${DIM}  Export the agent wallet's secret key for import into Phantom/Solflare${RESET}`);
+    process.exit(1);
+  }
+
+  print(`${DIM}  Exporting wallet...${RESET}`);
+
+  const result = await exportWallet({ agentApiKey: apiKey });
+
+  if (!result.success) {
+    print(`${RED}  Error: ${result.error}${RESET}`);
+    process.exit(1);
+  }
+
+  print();
+  print(`${GREEN}${BOLD}  Wallet Exported${RESET}`);
+  print();
+  print(`  ${BOLD}Agent:${RESET}   ${result.agent?.name || 'unknown'}`);
+  print(`  ${BOLD}Address:${RESET} ${result.agent?.walletAddress}`);
+  print(`  ${BOLD}Network:${RESET} ${result.wallet?.network || 'solana-devnet'}`);
+  print();
+  print(`  ${BOLD}Secret Key:${RESET}`);
+  print(`  ${YELLOW}${result.wallet?.secretKey}${RESET}`);
+  print();
+  print(`${DIM}  Import into Phantom or Solflare to control this wallet.${RESET}`);
+  print(`${RED}  Anyone with this key can move funds. Keep it safe.${RESET}`);
   print();
 }
 
@@ -189,8 +222,10 @@ const command = args[0];
 
 if (!command || command === 'create') {
   cmdCreate(args[1]).catch(e => { print(`${RED}Error: ${e.message}${RESET}`); process.exit(1); });
-} else if (command === 'build' || command === 'enter' || command === 'bet') {
+} else if (command === 'build' || command === 'enter') {
   cmdEnter(args[1], args[2], args[3]).catch(e => { print(`${RED}Error: ${e.message}${RESET}`); process.exit(1); });
+} else if (command === 'export-wallet' || command === 'export') {
+  cmdExportWallet(args[1]).catch(e => { print(`${RED}Error: ${e.message}${RESET}`); process.exit(1); });
 } else if (command === 'pools') {
   cmdPools().catch(e => { print(`${RED}Error: ${e.message}${RESET}`); process.exit(1); });
 } else if (command === 'leaderboard' || command === 'lb') {
@@ -205,6 +240,7 @@ if (!command || command === 'create') {
   print(`    ${CYAN}conviction build <key> <SIDE> [amt]${RESET}   Enter a position`);
   print(`    ${CYAN}conviction pools${RESET}                   Show open pools`);
   print(`    ${CYAN}conviction leaderboard${RESET}             Strategy rankings`);
+  print(`    ${CYAN}conviction export-wallet <apiKey>${RESET}  Export wallet secret key`);
   print();
   print(`  ${DIM}https://conviction.fm${RESET}`);
   print();
